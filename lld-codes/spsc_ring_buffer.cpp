@@ -20,8 +20,8 @@ class SPSCRingBuffer {
         SPSCRingBuffer(size_t size) : buffer(size), size(size) {}
 
         bool push(T item) {
-            int cur_head = head.load(memory_order_relaxed);
-            int next_head = (cur_head + 1) % size;
+            size_t cur_head = head.load(memory_order_relaxed);
+            size_t next_head = (cur_head + 1) % size;
 
             if (next_head == tail.load(memory_order_acquire)) {
                 return false; // queue is full 
@@ -33,7 +33,7 @@ class SPSCRingBuffer {
         }
 
         optional<T> pop() {
-            int cur_tail = tail.load(memory_order_relaxed);
+            size_t cur_tail = tail.load(memory_order_relaxed);
             
             if (cur_tail == head.load(memory_order_acquire)) {
                 return nullopt; // queue is empty
