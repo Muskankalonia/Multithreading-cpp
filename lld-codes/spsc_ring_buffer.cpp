@@ -40,7 +40,7 @@ class SPSCRingBuffer {
             }
 
             T value = move(buffer[cur_tail]); // only use move when there is single consumer
-            tail.store((tail + 1) % size, memory_order_release);
+            tail.store((cur_tail + 1) % size, memory_order_release);
             return value;
         }
 };
@@ -62,7 +62,7 @@ int main() {
             do {
                 val = buffer.pop();
             } while(!val.has_value());
-            string msg = "Popped " + to_string(i) + "\n";
+            string msg = "Popped " + to_string(*val) + "\n";
             cout << msg;
         }
     });
