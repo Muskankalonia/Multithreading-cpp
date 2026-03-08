@@ -85,7 +85,7 @@ class vendingMachine {
             };
 
             int temp1 = total_cash - price;
-            int i = 0;
+            size_t i = 0;
             while((temp1 > 0) && (i < denoms.size())) {
                 int pr = static_cast<int>(denoms[i]);
                 while(temp1 >= pr) {
