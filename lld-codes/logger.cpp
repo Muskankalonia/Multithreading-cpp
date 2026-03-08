@@ -13,7 +13,7 @@ enum class level {
     Warn
 };
 
-string to_string(level l) {
+string levelToString(level l) {
     switch(l) {
         case level::Error: return "Error";
         case level::Info:  return "Info";
@@ -31,7 +31,7 @@ struct logs {
     logs(level lvl, string msg, int time_stamp, string service) : lvl(lvl), msg(msg), time_stamp(time_stamp), service(service) {}
 
     void printLog() {
-        string final_log = to_string(time_stamp) + "|" + to_string(lvl) + "|" + service + "|" + msg + "\n";
+        string final_log = to_string(time_stamp) + "|" + levelToString(lvl) + "|" + service + "|" + msg + "\n";
         cout << final_log;
     }
 };
@@ -71,7 +71,7 @@ class logger {
                 }
             }
             
-            time_stamp++;
+            time_stamp.fetch_add(1);
 
         }
 
@@ -84,60 +84,39 @@ class logger {
         }
 
         void searchByLvl(level lvl) {
-            vector<logs*> l;
-            {
-                shared_lock lock(mtx);
-                l = lvlSearch[lvl];
-            }
 
-            printLog(l);
+            shared_lock lock(mtx);
+            if(lvlSearch.count(lvl)) printLog(lvlSearch[lvl]);
 
         }
 
         void searchByKeyword(string keyword) {
-            vector<logs*> l;
-            {
-                shared_lock lock(mtx);
-                l = keywordSearch[keyword];
-            }
 
-            printLog(l);
+            shared_lock lock(mtx);
+            if(keywordSearch.count(keyword)) printLog(keywordSearch[keyword]);
 
         }
 
         void searchByService(string service) {
-            vector<logs*> l;
-            {
-                shared_lock lock(mtx);
-                l = svcSearch[service];
-            }
 
-            printLog(l);
+            shared_lock lock(mtx);
+            if(svcSearch.count(service)) printLog(svcSearch[service]);
 
         }
 
         void searchByTimeStamp(int start, int end) {
-            vector<logs*> l;
 
             shared_lock lock(mtx);
             auto i = lower_bound(logSrc.begin(), logSrc.end(), start, [](const unique_ptr<logs> &a, int val) {
                 return a->time_stamp < val;
             });
 
-            auto j = lower_bound(logSrc.begin(), logSrc.end(), end, [](const unique_ptr<logs> &a, int val) {
-                return a->time_stamp < val;
+            auto j = upper_bound(logSrc.begin(), logSrc.end(), end, [](const unique_ptr<logs> &a, int val) {
+                return val < a->time_stamp;
             });
 
-            if(i != logSrc.end() && j != logSrc.end()) {
-                int index_i = i - logSrc.begin();
-                int index_j = j - logSrc.begin();
-
-                while(index_i <= index_j) {
-                    l.push_back(logSrc[index_i].get());
-                    index_i++;
-                }
-
-                printLog(l);
+            for (auto it = i; it != j; it++) {
+                (*it)->printLog(); // print here itself instead of copying everything to a vector and calling printLog func of the Logger
             }
         }
 };
